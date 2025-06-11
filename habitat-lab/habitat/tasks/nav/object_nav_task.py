@@ -19,6 +19,12 @@ from habitat.tasks.nav.nav import (
     NavigationTask,
 )
 
+from habitat.core.dataset import Dataset, Episode
+
+from habitat.core.simulator import (
+    Simulator,
+)
+
 try:
     from habitat.datasets.object_nav.object_nav_dataset import (
         ObjectNavDatasetV1,
@@ -28,6 +34,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from omegaconf import DictConfig
+
 
 
 @attr.s(auto_attribs=True, kw_only=True)
@@ -183,3 +190,16 @@ class ObjectNavigationTask(NavigationTask):
     r"""An Object Navigation Task class for a task specific methods.
     Used to explicitly state a type of the task in config.
     """
+
+
+# @registry.register_task(name="ObjectNav-multiagents")
+# class ObjectNavigationMultiAgents(NavigationTask):
+#     r"""Multi-agent Object Navigation Task class for a task specific methods."""
+#     # def __init__(
+#     #     self,
+#     #     config: "DictConfig",
+#     #     sim: Simulator,
+#     #     dataset: Optional[Dataset] = None,
+#     # ) -> None:
+#     #     super().__init__(config=config, sim=sim, dataset=dataset)
+    
