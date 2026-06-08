@@ -1828,6 +1828,12 @@ class DatasetConfig(HabitatBaseConfig):
         "data/datasets/pointnav/"
         "habitat-test-scenes/v1/{split}/{split}.json.gz"
     )
+    # Debug helper: restrict task episodes to one scene id.
+    debug_scene_id: Optional[str] = None
+    # Debug helper: keep only selected episode ids.
+    debug_episode_ids: List[str] = field(default_factory=list)
+    # Debug helper: cap total episode count after filtering. -1 disables.
+    debug_max_episodes: int = -1
     # TODO: Make this field a structured dataclass.
     metadata: Optional[Any] = None
 

@@ -6,6 +6,7 @@
 
 import random
 import time
+import os
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -67,6 +68,67 @@ class Env:
     _episode_from_iter_on_reset: bool
     _episode_force_changed: bool
 
+    @staticmethod
+    def _scene_matches(scene_id: str, debug_scene_id: str) -> bool:
+        if not scene_id or not debug_scene_id:
+            return False
+
+        normalized_debug = debug_scene_id.strip("/")
+        basename = os.path.basename(scene_id)
+        parent_dir = os.path.basename(os.path.dirname(scene_id))
+
+        return (
+            scene_id == debug_scene_id
+            or normalized_debug in scene_id
+            or basename == normalized_debug
+            or parent_dir == normalized_debug
+        )
+
+    def _apply_debug_dataset_overrides(self) -> None:
+        if self._dataset is None:
+            return
+
+        debug_scene_id = getattr(self._config.dataset, "debug_scene_id", None)
+        debug_episode_ids = {
+            str(ep_id)
+            for ep_id in getattr(self._config.dataset, "debug_episode_ids", [])
+        }
+        debug_max_episodes = int(
+            getattr(self._config.dataset, "debug_max_episodes", -1)
+        )
+
+        if (
+            not debug_scene_id
+            and len(debug_episode_ids) == 0
+            and debug_max_episodes <= 0
+        ):
+            return
+
+        episodes = list(self._dataset.episodes)
+
+        if debug_scene_id:
+            episodes = [
+                ep
+                for ep in episodes
+                if self._scene_matches(getattr(ep, "scene_id", ""), debug_scene_id)
+            ]
+
+        if len(debug_episode_ids) > 0:
+            episodes = [
+                ep
+                for ep in episodes
+                if str(getattr(ep, "episode_id", "")) in debug_episode_ids
+            ]
+
+        if debug_max_episodes > 0:
+            episodes = episodes[:debug_max_episodes]
+
+        assert (
+            len(episodes) > 0
+        ), "Debug dataset filter removed all episodes. Please check scene id / episode ids."
+
+        self._dataset.episodes = episodes
+
     def __init__(
         self, config: "DictConfig", dataset: Optional[Dataset[Episode]] = None
     ) -> None:
@@ -85,9 +147,16 @@ class Env:
         self._config = config
         self._dataset = dataset
         if self._dataset is None and config.dataset.type:
+            debug_scene_id = getattr(config.dataset, "debug_scene_id", None)
+            if debug_scene_id:
+                with read_write(config):
+                    config.dataset.content_scenes = [debug_scene_id]
+
             self._dataset = make_dataset(
                 id_dataset=config.dataset.type, config=config.dataset
             )
+
+        self._apply_debug_dataset_overrides()
 
         self._current_episode = None
         self._episode_iterator = None

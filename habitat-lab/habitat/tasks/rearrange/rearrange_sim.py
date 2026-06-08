@@ -273,16 +273,17 @@ class RearrangeSim(HabitatSim):
         for i in range(len(self.agents)):
             self.reset_agent(i)
         # Load specified articulated object states from episode config
-        self._set_ao_states_from_ep(self.ep_info)
-        # reset objects to episode initial state
-        self._add_objs(
-            self.ep_info,
-            should_add_objects=False,  # objects should already by loaded
-            new_scene=False,
-        )  # the scene shouldn't change between resets
-        # auto-sleep rigid objects as optimization
-        if self._auto_sleep:
-            self._sleep_all_objects()
+        if self.ep_info is not None:
+            self._set_ao_states_from_ep(self.ep_info)
+            # reset objects to episode initial state
+            self._add_objs(
+                self.ep_info,
+                should_add_objects=False,  # objects should already by loaded
+                new_scene=False,
+            )  # the scene shouldn't change between resets
+            # auto-sleep rigid objects as optimization
+            if self._auto_sleep:
+                self._sleep_all_objects()
 
     @add_perf_timing_func()
     def reconfigure(
@@ -535,15 +536,16 @@ class RearrangeSim(HabitatSim):
         Sets the ArticulatedObject states for the episode which are differ from base scene state.
         """
         aom = self.get_articulated_object_manager()
-        for aoi_handle, joint_states in ep_info.ao_states.items():
-            ao = aom.get_object_by_handle(aoi_handle)
-            ao_pose = ao.joint_positions
-            for link_ix, joint_state in joint_states.items():
-                joint_position_index = ao.get_link_joint_pos_offset(
-                    int(link_ix)
-                )
-                ao_pose[joint_position_index] = joint_state
-            ao.joint_positions = ao_pose
+        if ep_info != None:
+            for aoi_handle, joint_states in ep_info.ao_states.items():
+                ao = aom.get_object_by_handle(aoi_handle)
+                ao_pose = ao.joint_positions
+                for link_ix, joint_state in joint_states.items():
+                    joint_position_index = ao.get_link_joint_pos_offset(
+                        int(link_ix)
+                    )
+                    ao_pose[joint_position_index] = joint_state
+                ao.joint_positions = ao_pose
 
     def is_point_within_bounds(self, pos):
         # NOTE: This check is loose: really we want the island bounds, not the full navmesh
